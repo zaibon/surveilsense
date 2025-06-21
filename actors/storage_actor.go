@@ -53,14 +53,11 @@ func (a *StorageActor) Receive(ctx *actor.ReceiveContext) {
 		a.logFile.Write([]byte("\n"))
 	}
 
-	// Optionally save image clip
+	// Save image clip in a per-camera folder
 	if len(event.ImageClip) > 0 {
-		imgName := filepath.Join("clips", time.Now().Format("20060102_150405.000")+"_"+event.CameraId+".jpg")
-		if err := os.MkdirAll("clips", 0755); err != nil {
-			log.Printf("StorageActor: failed to create clips directory: %v", err)
-			return
-		}
-
+		clipDir := filepath.Join("clips", event.CameraId)
+		os.MkdirAll(clipDir, 0755)
+		imgName := filepath.Join(clipDir, time.Now().Format("20060102_150405.000")+".jpg")
 		err := os.WriteFile(imgName, event.ImageClip, 0644)
 		if err != nil {
 			log.Printf("StorageActor: failed to save image clip: %v", err)

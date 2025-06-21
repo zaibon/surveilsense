@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SurveilSense Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <nav class="bg-blue-700 p-4 text-white">
+    <div class="container mx-auto flex justify-between items-center">
+      <span class="font-bold text-xl">SurveilSense Dashboard</span>
+      <a href="/clips" class="hover:underline">View Clips</a>
+    </div>
+  </nav>
+  <main class="container mx-auto mt-8">
+    <h1 class="text-2xl font-bold mb-4">Camera Management</h1>
+    <form id="add-camera-form" class="flex space-x-2 mb-6">
+      <input type="text" name="camera_id" placeholder="Camera ID" class="border rounded px-2 py-1" required>
+      <input type="number" name="device_id" placeholder="Device ID" class="border rounded px-2 py-1" required>
+      <button type="submit" class="bg-blue-600 text-white px-4 py-1 rounded">Add Camera</button>
+    </form>
+    <div id="camera-list" class="bg-white rounded shadow p-4">
+      <!-- Camera list will be rendered here -->
+    </div>
+  </main>
+  <script>
+    async function fetchCameras() {
+      const res = await fetch('/api/cameras');
+      const cameras = await res.json();
+      const list = document.getElementById('camera-list');
+      list.innerHTML = cameras.length ?
+        `<ul>${cameras.map(cam => `<li class='flex justify-between items-center border-b py-2'>
+          <span>${cam.camera_id} (Device ${cam.device_id})</span>
+          <button onclick="removeCamera('${cam.camera_id}')" class='text-red-600 hover:underline'>Remove</button>
+        </li>`).join('')}</ul>` :
+        '<p class="text-gray-500">No cameras registered.</p>';
+    }
+    async function removeCamera(id) {
+      await fetch(`/api/cameras/${id}`, { method: 'DELETE' });
+      fetchCameras();
+    }
+    document.getElementById('add-camera-form').onsubmit = async e => {
+      e.preventDefault();
+      const form = e.target;
+      await fetch('/api/cameras', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          camera_id: form.camera_id.value,
+          device_id: parseInt(form.device_id.value)
+        })
+      });
+      form.reset();
+      fetchCameras();
+    };
+    fetchCameras();
+  </script>
+</body>
+</html>

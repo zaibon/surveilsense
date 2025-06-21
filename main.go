@@ -7,14 +7,15 @@ import (
 	"syscall"
 
 	"github.com/tochemey/goakt/v3/actor"
-	"github.com/tochemey/goakt/v3/log"
+	aktlog "github.com/tochemey/goakt/v3/log"
 	"github.com/zaibon/surveilsense/actors"
 	"github.com/zaibon/surveilsense/detection"
+	"github.com/zaibon/surveilsense/web"
 )
 
 func main() {
 	ctx := context.Background()
-	logger := log.DefaultLogger
+	logger := aktlog.DefaultLogger
 
 	faceDetector := detection.NewFaceDetector("detection/haarcascade_frontalface_default.xml")
 	defer faceDetector.Close()
@@ -42,9 +43,10 @@ func main() {
 	// Spawn FrameProcessorActor with actorSystem, notificationPID, and storagePID
 	frameProcessorPID, _ := actorSystem.Spawn(ctx, "FrameProcessorActor", actors.NewFrameProcessorActor(notificationPID, storagePID, faceDetector))
 	// Pass actorSystem and frameProcessorPID to CameraFeedActor
-	_, _ = actorSystem.Spawn(ctx, "CameraFeedActor", actors.NewCameraFeedActor(frameProcessorPID))
-	_, _ = actorSystem.Spawn(ctx, "SupervisorActor", actors.NewSupervisorActor())
-	_, _ = actorSystem.Spawn(ctx, "SystemCoordinatorActor", actors.NewSystemCoordinatorActor())
+	// _, _ = actorSystem.Spawn(ctx, "CameraFeedActor", actors.NewCameraFeedActor(frameProcessorPID))
+
+	server := web.NewServer(actorSystem, frameProcessorPID)
+	go server.Start()
 
 	// Wait for interrupt signal to gracefully shutdown
 	interruptSignal := make(chan os.Signal, 1)

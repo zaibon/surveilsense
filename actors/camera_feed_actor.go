@@ -36,6 +36,16 @@ func NewCameraFeedActor(processor *actor.PID) *CameraFeedActor {
 	}
 }
 
+// NewCameraFeedActorWithConfig creates a CameraFeedActor for a specific camera ID and device ID
+func NewCameraFeedActorWithConfig(cameraID string, deviceID int, processor *actor.PID) *CameraFeedActor {
+	return &CameraFeedActor{
+		cameraID:  cameraID,
+		deviceID:  deviceID,
+		quit:      make(chan struct{}),
+		processor: processor,
+	}
+}
+
 func (a *CameraFeedActor) PreStart(ctx *actor.Context) error {
 	var err error
 	a.capture, err = gocv.OpenVideoCapture(a.deviceID)

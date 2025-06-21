@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recorded Clips - SurveilSense</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <nav class="bg-blue-700 p-4 text-white">
+    <div class="container mx-auto flex justify-between items-center">
+      <a href="/" class="font-bold text-xl hover:underline">SurveilSense Dashboard</a>
+      <span>Recorded Clips</span>
+    </div>
+  </nav>
+  <main class="container mx-auto mt-8">
+    <h1 class="text-2xl font-bold mb-4">Recorded Clips</h1>
+    <div id="clips-list" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- Clips will be rendered here -->
+    </div>
+  </main>
+  <script>
+    async function fetchClips() {
+      const res = await fetch('/api/clips');
+      const clips = await res.json();
+      const list = document.getElementById('clips-list');
+      if (!clips.length) {
+        list.innerHTML = '<p class="text-gray-500">No clips found.</p>';
+        return;
+      }
+      list.innerHTML = clips.map(clip => `
+        <div class="bg-white rounded shadow p-4 flex flex-col items-center">
+          <img src="/clips/${clip.filename}" alt="clip" class="mb-2 rounded max-h-48">
+          <div class="text-sm text-gray-700">${clip.filename}</div>
+          <div class="text-xs text-blue-700 mt-1">Camera: <span class="font-semibold">${clip.camera_id}</span></div>
+        </div>
+      `).join('');
+    }
+    fetchClips();
+  </script>
+</body>
+</html>
