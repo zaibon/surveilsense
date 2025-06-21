@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"encoding/json"
+	"html/template"
 	"io/fs"
 	"log"
 	"net/http"
@@ -30,10 +31,12 @@ func NewServer(actorSystem actor.ActorSystem, frameProcPID *actor.PID) *Server {
 	server := &Server{mux: mux, actorSystem: actorSystem, frameProcPID: frameProcPID, cameras: make(map[string]Camera)}
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "web/index.html")
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		indexTmpl.ExecuteTemplate(w, "index", nil)
 	})
 	mux.HandleFunc("/clips", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "web/clips.html")
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		clipsTmpl.ExecuteTemplate(w, "clips", nil)
 	})
 	mux.Handle("/clips/", http.StripPrefix("/clips/", http.FileServer(http.Dir("clips"))))
 
@@ -97,6 +100,12 @@ func (s *Server) cameraHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+var (
+	clipsListTmpl = template.Must(template.ParseFiles("web/clips-list.tmpl"))
+	indexTmpl     = template.Must(template.ParseFiles("web/index.tmpl"))
+	clipsTmpl     = template.Must(template.ParseFiles("web/clips.tmpl"))
+)
+
 type clip struct {
 	Filename string `json:"filename"`
 	CameraID string `json:"camera_id"`
@@ -111,5 +120,7 @@ func clipsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		return nil
 	})
-	json.NewEncoder(w).Encode(files)
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	clipsListTmpl.ExecuteTemplate(w, "clips-list", files)
 }
