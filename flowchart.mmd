@@ -1,0 +1,13 @@
+flowchart TD
+    subgraph Camera
+        CameraFeed[CameraFeedActor]
+        FrameProcessor[FrameProcessorActor]
+    end
+
+    Notification[NotificationActor]
+    Storage[StorageActor]
+
+    %% Relationships
+    CameraFeed -- FrameData --> FrameProcessor
+    FrameProcessor -- DetectionEvent --> Notification
+    FrameProcessor -- DetectionEvent --> Storage
