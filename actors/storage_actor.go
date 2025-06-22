@@ -1,35 +1,30 @@
 package actors
 
 import (
-	"encoding/json"
+	"context"
 	"log"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/tochemey/goakt/v3/actor"
 	"github.com/zaibon/surveilsense/proto"
 )
 
-// StorageActor persists DetectionEvent data to a log file
-// For demo: writes JSON lines to detections.log and saves image clips if present
+type StorageBackend interface {
+	SaveMetadata(ctx context.Context, cameraID string, timestamp time.Time, detections []*proto.Detection) error
+	SaveClip(ctx context.Context, cameraID string, timestamp time.Time, imageClip []byte) error
+}
 
 type StorageActor struct {
-	logFile *os.File
+	backend StorageBackend
 }
 
 var _ actor.Actor = (*StorageActor)(nil)
 
-func NewStorageActor() *StorageActor {
-	return &StorageActor{}
+func NewStorageActor(backend StorageBackend) *StorageActor {
+	return &StorageActor{backend: backend}
 }
 
 func (a *StorageActor) PreStart(ctx *actor.Context) error {
-	f, err := os.OpenFile("detections.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	a.logFile = f
 	return nil
 }
 
@@ -41,33 +36,22 @@ func (a *StorageActor) Receive(ctx *actor.ReceiveContext) {
 		return
 	}
 
-	// Write detection metadata as JSON line
-	meta := map[string]interface{}{
-		"camera_id":  event.CameraId,
-		"timestamp":  event.Timestamp,
-		"detections": event.Detections,
-	}
-	b, err := json.Marshal(meta)
-	if err == nil && a.logFile != nil {
-		a.logFile.Write(b)
-		a.logFile.Write([]byte("\n"))
-	}
-
-	// Save image clip in a per-camera folder
-	if len(event.ImageClip) > 0 {
-		clipDir := filepath.Join("clips", event.CameraId)
-		os.MkdirAll(clipDir, 0755)
-		imgName := filepath.Join(clipDir, time.Now().Format("20060102_150405.000")+".jpg")
-		err := os.WriteFile(imgName, event.ImageClip, 0644)
-		if err != nil {
-			log.Printf("StorageActor: failed to save image clip: %v", err)
+	ts := time.UnixMilli(event.Timestamp)
+	if err := a.backend.SaveMetadata(ctx.Context(), event.CameraId, ts, event.Detections); err != nil {
+		log.Printf("StorageActor: failed to save metadata for camera %s: %v", event.CameraId, err)
+	} else {
+		if err := a.backend.SaveClip(ctx.Context(), event.CameraId, ts, event.ImageClip); err != nil {
+			log.Printf("StorageActor: failed to save clip for camera %s: %v", event.CameraId, err)
 		}
 	}
 }
 
 func (a *StorageActor) PostStop(ctx *actor.Context) error {
-	if a.logFile != nil {
-		a.logFile.Close()
+	type closer interface {
+		Close() error
+	}
+	if c, ok := a.backend.(closer); ok {
+		return c.Close()
 	}
 	return nil
 }

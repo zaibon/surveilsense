@@ -10,6 +10,7 @@ import (
 	aktlog "github.com/tochemey/goakt/v3/log"
 	"github.com/zaibon/surveilsense/actors"
 	"github.com/zaibon/surveilsense/detection"
+	"github.com/zaibon/surveilsense/storage"
 	"github.com/zaibon/surveilsense/web"
 )
 
@@ -36,10 +37,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	fs, err := storage.NewFilesystemStorage()
+	if err != nil {
+		logger.Fatal(err)
+		os.Exit(1)
+	}
+
 	// Spawn actors
 	// Spawn NotificationActor and StorageActor first to get their PIDs
 	notificationPID, _ := actorSystem.Spawn(ctx, "NotificationActor", actors.NewNotificationActor())
-	storagePID, _ := actorSystem.Spawn(ctx, "StorageActor", actors.NewStorageActor())
+	storagePID, _ := actorSystem.Spawn(ctx, "StorageActor", actors.NewStorageActor(fs))
 	// Spawn FrameProcessorActor with actorSystem, notificationPID, and storagePID
 	frameProcessorPID, _ := actorSystem.Spawn(ctx, "FrameProcessorActor", actors.NewFrameProcessorActor(notificationPID, storagePID, faceDetector))
 	// Pass actorSystem and frameProcessorPID to CameraFeedActor
