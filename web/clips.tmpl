@@ -1,3 +1,4 @@
+{{define "clips"}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,10 +17,11 @@
   <main class="container mx-auto mt-8">
     <h1 class="text-2xl font-bold mb-4">Recorded Clips</h1>
     <div id="clips-list" class="grid grid-cols-1 md:grid-cols-3 gap-6"
-         hx-get="/api/clips" hx-trigger="load, every 1s" hx-target="#clips-list" hx-swap="innerHTML">
+         hx-get="/api/clips" hx-trigger="load, every 5s" hx-target="#clips-list" hx-swap="innerHTML">
       <!-- Clips will be rendered here -->
     </div>
   </main>
-  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <script src="https://unpkg.com/htmx.org@2.0.5/dist/htmx.min.js"></script>
 </body>
 </html>
+{{end}}

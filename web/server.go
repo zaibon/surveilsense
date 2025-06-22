@@ -2,15 +2,22 @@ package web
 
 import (
 	"context"
-	"encoding/json"
 	"html/template"
 	"io/fs"
 	"log"
 	"net/http"
 	"path/filepath"
+	"strconv"
 
 	"github.com/tochemey/goakt/v3/actor"
 	"github.com/zaibon/surveilsense/actors"
+)
+
+var (
+	clipsListTmpl  = template.Must(template.ParseFiles("web/clips-list.tmpl"))
+	indexTmpl      = template.Must(template.ParseFiles("web/index.tmpl"))
+	clipsTmpl      = template.Must(template.ParseFiles("web/clips.tmpl"))
+	cameraListTmpl = template.Must(template.ParseFiles("web/camera-list.tmpl"))
 )
 
 type Camera struct {
@@ -61,26 +68,37 @@ func (s *Server) camerasHandler(w http.ResponseWriter, r *http.Request) {
 		for _, cam := range s.cameras {
 			list = append(list, cam)
 		}
-		json.NewEncoder(w).Encode(list)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		cameraListTmpl.ExecuteTemplate(w, "camera-list", list)
 	case http.MethodPost:
 		var cam Camera
-		if err := json.NewDecoder(r.Body).Decode(&cam); err != nil {
+		if err := r.ParseForm(); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-
-		// Spawn a new CameraFeedActor for this camera
+		cam.CameraID = r.FormValue("camera_id")
+		cam.DeviceID = 0
+		if v := r.FormValue("device_id"); v != "" {
+			id, err := strconv.Atoi(v)
+			if err == nil {
+				cam.DeviceID = id
+			}
+		}
 		pid, err := s.actorSystem.Spawn(r.Context(), cam.CameraID, actors.NewCameraFeedActorWithConfig(cam.CameraID, cam.DeviceID, s.frameProcPID))
 		if err != nil {
 			log.Printf("Failed to spawn CameraFeedActor: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		cam.PID = pid // Track actor PID associated with this camera
+		cam.PID = pid
 		s.cameras[cam.CameraID] = cam
-
-		log.Printf("Spawned CameraFeedActor %s (device %d) with PID %v", cam.CameraID, cam.DeviceID, pid)
-		w.WriteHeader(http.StatusCreated)
+		// Return updated camera list HTML
+		list := make([]Camera, 0, len(s.cameras))
+		for _, cam := range s.cameras {
+			list = append(list, cam)
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		cameraListTmpl.ExecuteTemplate(w, "camera-list", list)
 	}
 }
 
@@ -99,12 +117,6 @@ func (s *Server) cameraHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
-
-var (
-	clipsListTmpl = template.Must(template.ParseFiles("web/clips-list.tmpl"))
-	indexTmpl     = template.Must(template.ParseFiles("web/index.tmpl"))
-	clipsTmpl     = template.Must(template.ParseFiles("web/clips.tmpl"))
-)
 
 type clip struct {
 	Filename string `json:"filename"`

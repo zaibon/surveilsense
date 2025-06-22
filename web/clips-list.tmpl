@@ -1,0 +1,13 @@
+{{define "clips-list"}}
+{{if not .}}
+<p class="text-gray-500">No clips found.</p>
+{{else}}
+{{range .}}
+<div class="bg-white rounded shadow p-4 flex flex-col items-center">
+  <img src="/clips/{{.Filename}}" alt="clip" class="mb-2 rounded max-h-48">
+  <div class="text-sm text-gray-700">{{.Filename}}</div>
+  <div class="text-xs text-blue-700 mt-1">Camera: <span class="font-semibold">{{.CameraID}}</span></div>
+</div>
+{{end}}
+{{end}}
+{{end}}

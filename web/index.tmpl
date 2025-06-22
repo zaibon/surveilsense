@@ -1,0 +1,38 @@
+{{define "index"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SurveilSense Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <nav class="bg-blue-700 p-4 text-white">
+    <div class="container mx-auto flex justify-between items-center">
+      <span class="font-bold text-xl">SurveilSense Dashboard</span>
+      <a href="/clips" class="hover:underline">View Clips</a>
+    </div>
+  </nav>
+  <main class="container mx-auto mt-8">
+    <h1 class="text-2xl font-bold mb-4">Camera Management</h1>
+    <form id="add-camera-form" class="flex space-x-2 mb-6"
+          hx-post="/api/cameras" hx-trigger="submit" hx-target="#camera-list" hx-swap="innerHTML">
+      <input type="text" name="camera_id" placeholder="Camera ID" class="border rounded px-2 py-1" required>
+      <input type="number" name="device_id" placeholder="Device ID" class="border rounded px-2 py-1" required>
+      <button type="submit" class="bg-blue-600 text-white px-4 py-1 rounded">Add Camera</button>
+    </form>
+    <div id="camera-list" class="bg-white rounded shadow p-4" 
+         hx-get="/api/cameras" hx-trigger="load, every 2s" hx-target="#camera-list" hx-swap="innerHTML">
+      <!-- Camera list will be rendered here -->
+    </div>
+    <h2 class="text-xl font-semibold mt-10 mb-4">Live Camera Feeds</h2>
+    <div id="camera-frames" class="grid grid-cols-1 md:grid-cols-3 gap-6"
+         hx-get="/api/cameras/frames" hx-trigger="load, every 1s" hx-target="#camera-frames" hx-swap="innerHTML">
+      <!-- Camera frames will be rendered here -->
+    </div>
+  </main>
+  <script src="https://unpkg.com/htmx.org@2.0.5/dist/htmx.min.js"></script>
+</body>
+</html>
+{{end}}

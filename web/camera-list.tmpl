@@ -1,0 +1,14 @@
+{{define "camera-list"}}
+{{if not .}}
+<p class="text-gray-500">No cameras registered.</p>
+{{else}}
+<ul>
+  {{range .}}
+  <li class='flex justify-between items-center border-b py-2'>
+    <span>{{.CameraID}} (Device {{.DeviceID}})</span>
+    <button hx-delete="/api/cameras/{{.CameraID}}" hx-trigger="click" hx-target="#camera-list" hx-swap="outerHTML" class='text-red-600 hover:underline'>Remove</button>
+  </li>
+  {{end}}
+</ul>
+{{end}}
+{{end}}
