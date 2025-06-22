@@ -16,19 +16,15 @@ var blue = color.RGBA{0, 0, 255, 0}
 
 // FrameProcessorActor receives FrameData and sends DetectionEvent
 type FrameProcessorActor struct {
-	notificationPID *actor.PID
-	storagePID      *actor.PID
-	detector        detection.Detector
+	detector detection.Detector
 }
 
 var _ actor.Actor = (*FrameProcessorActor)(nil)
 
 // NewFrameProcessorActor creates a FrameProcessorActor with the required PIDs
-func NewFrameProcessorActor(notificationPID, storagePID *actor.PID, detector detection.Detector) *FrameProcessorActor {
+func NewFrameProcessorActor(detector detection.Detector) *FrameProcessorActor {
 	return &FrameProcessorActor{
-		notificationPID: notificationPID,
-		storagePID:      storagePID,
-		detector:        detector,
+		detector: detector,
 	}
 }
 
@@ -89,24 +85,26 @@ func (a *FrameProcessorActor) Receive(ctx *actor.ReceiveContext) {
 		ImageClip:  imageClip,
 	}
 
-	// Send DetectionEvent to NotificationActor and StorageActor
-
-	if a.notificationPID != nil {
-		if err := actor.Tell(ctx.Context(), a.notificationPID, detectionEvent); err != nil {
-			log.Printf("FrameProcessorActor: failed to send detection event to notification actor: %v", err)
-		} else {
-			log.Printf("FrameProcessorActor: sent detection event to notification actor for camera %s", frame.CameraId)
-		}
-	}
-	if a.storagePID != nil {
-		if err := actor.Tell(ctx.Context(), a.storagePID, detectionEvent); err != nil {
-			log.Printf("FrameProcessorActor: failed to send detection event to storage actor: %v", err)
-		} else {
-			log.Printf("FrameProcessorActor: sent detection event to storage actor for camera %s", frame.CameraId)
-		}
-	}
+	// Send DetectionEvent to all NotificationActor and StorageActor instances
+	a.sendDetectionEvent(ctx, detectionEvent)
 }
 
 func (a *FrameProcessorActor) PostStop(ctx *actor.Context) error {
 	return nil
+}
+
+func (a *FrameProcessorActor) sendDetectionEvent(ctx *actor.ReceiveContext, event *proto.DetectionEvent) {
+	pids := ctx.ActorSystem().Actors()
+	for _, pid := range pids {
+		switch pid.Actor().(type) {
+		case *NotificationActor, *StorageActor:
+			if err := actor.Tell(ctx.Context(), pid, event); err != nil {
+				log.Printf("FrameProcessorActor: failed to send detection event to %s: %v", pid.Address(), err)
+			} else {
+				log.Printf("FrameProcessorActor: sent detection event to %s for camera %s", pid.Address(), event.CameraId)
+			}
+		default:
+			continue
+		}
+	}
 }

@@ -45,10 +45,10 @@ func main() {
 
 	// Spawn actors
 	// Spawn NotificationActor and StorageActor first to get their PIDs
-	notificationPID, _ := actorSystem.Spawn(ctx, "NotificationActor", actors.NewNotificationActor())
-	storagePID, _ := actorSystem.Spawn(ctx, "StorageActor", actors.NewStorageActor(fs))
+	_, _ = actorSystem.Spawn(ctx, "NotificationActor", actors.NewNotificationActor())
+	_, _ = actorSystem.Spawn(ctx, "StorageActor", actors.NewStorageActor(fs))
 	// Spawn FrameProcessorActor with actorSystem, notificationPID, and storagePID
-	frameProcessorPID, _ := actorSystem.Spawn(ctx, "FrameProcessorActor", actors.NewFrameProcessorActor(notificationPID, storagePID, faceDetector))
+	frameProcessorPID, _ := actorSystem.Spawn(ctx, "FrameProcessorActor", actors.NewFrameProcessorActor(faceDetector))
 	// Pass actorSystem and frameProcessorPID to CameraFeedActor
 	// _, _ = actorSystem.Spawn(ctx, "CameraFeedActor", actors.NewCameraFeedActor(frameProcessorPID))
 
